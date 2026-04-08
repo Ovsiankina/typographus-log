@@ -1,5 +1,5 @@
 mod typographus;
-pub use typographus::{clock, logger};
+pub use typographus::{clock, logger, panic, table};
 
 // #[cfg(test)]
 // mod tests {

@@ -1,5 +1,6 @@
 use log::LevelFilter;
 use typographus_log::logger::Logger;
+use typographus_log::table;
 
 fn main() {
     Logger::init_logger(LevelFilter::Trace);
@@ -9,6 +10,16 @@ fn main() {
     log::info!("This is an info message");
     log::debug!("This is a debug message\nspanning\nmultiple lines");
     log::trace!("This is a trace message");
+
+    // Minimal table demo to exercise API
+    let w = 50usize;
+    let top = table::box_top_line("demo  DEMO", "meta:right", w);
+    let row = table::box_body_row("Table body line", w);
+    let emp = table::box_empty_row(w);
+    let bot = table::box_bottom_line("footer", w);
+    println!("\n{}\n{}\n{}\n{}", top, row, emp, bot);
+
+    // Panic demo moved to examples/panicdemo.rs
 }
 // use std::{
 //     fs::{self, File},
