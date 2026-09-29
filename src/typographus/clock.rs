@@ -5,15 +5,8 @@
 //! thread-safe), so [`init`] should run early in `main`;
 //! `typographus_log::init()` does this for you.
 
-use once_cell::sync::Lazy;
 use std::sync::OnceLock;
-use time::{
-    OffsetDateTime, UtcOffset,
-    format_description::{self, FormatItem},
-};
-
-static TIME_FMT: Lazy<Vec<FormatItem<'static>>> =
-    Lazy::new(|| format_description::parse("[hour]:[minute]:[second]").expect("time fmt"));
+use time::{OffsetDateTime, UtcOffset};
 
 static LOCAL_OFFSET: OnceLock<UtcOffset> = OnceLock::new();
 
@@ -25,12 +18,17 @@ pub fn init() {
 
 /// Current local time as `HH:MM:SS`.
 pub fn now_hms() -> String {
+    let mut out = String::with_capacity(8);
+    let _ = write_hms(&mut out);
+    out
+}
+
+/// Write the current local time as `HH:MM:SS` into `out` (no allocation).
+pub fn write_hms(out: &mut impl std::fmt::Write) -> std::fmt::Result {
     init();
     let offset = *LOCAL_OFFSET.get().unwrap_or(&UtcOffset::UTC);
-    OffsetDateTime::now_utc()
-        .to_offset(offset)
-        .format(&TIME_FMT)
-        .unwrap_or_else(|_| "??:??:??".into())
+    let t = OffsetDateTime::now_utc().to_offset(offset);
+    write!(out, "{:02}:{:02}:{:02}", t.hour(), t.minute(), t.second())
 }
 
 #[cfg(test)]

@@ -119,9 +119,18 @@ impl Default for StyleBuilder {
 
 // ───────────────────── level pill (CHANGED) ──────────────────────────────────
 pub(crate) fn level_pill_for(level: Level) -> String {
-    let cfg = STYLE_CFG.read().expect("style lock").clone();
-    let pal = cfg.palette;
+    let mut out = String::new();
+    let _ = write_level_pill(&mut out, level, &STYLE_CFG.read().expect("style lock"));
+    out
+}
 
+/// Write the background pill straight into `out` (no allocation, no lock).
+pub(crate) fn write_level_pill(
+    out: &mut impl std::fmt::Write,
+    level: Level,
+    cfg: &StyleConfig,
+) -> std::fmt::Result {
+    let pal = &cfg.palette;
     let (fg, bg, label) = match level {
         Level::ERROR => (pal.error_fg, pal.error_bg, "ERROR"),
         Level::WARN => (pal.warn_fg, pal.warn_bg, "WARNING"),
@@ -132,21 +141,19 @@ pub(crate) fn level_pill_for(level: Level) -> String {
 
     // Fixed interior width to keep columns steady.
     let w = cfg.pill_width.max(label.len());
-    let padded = format!(" {:^w$} ", label);
-
     let mut st = Style::new()
         .bg_color(Some(bg.into()))
         .fg_color(Some(fg.into()));
     if pal.bold_pills {
         st = st.effects(Effects::BOLD);
     }
-
-    format!("{st}{padded}{Reset}")
+    write!(out, "{st} {label:^w$} {Reset}")
 }
 
-/// Current style config (cloned; cheap, taken once per event).
-pub(crate) fn style_snapshot() -> StyleConfig {
-    STYLE_CFG.read().expect("style lock").clone()
+/// Read access to the current style config. Hold it for one event only;
+/// don't call other style functions while holding it.
+pub(crate) fn style_read() -> std::sync::RwLockReadGuard<'static, StyleConfig> {
+    STYLE_CFG.read().expect("style lock")
 }
 
 // ───────────────────── public style API (NEW) ────────────────────────────────

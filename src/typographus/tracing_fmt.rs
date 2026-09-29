@@ -5,9 +5,9 @@
 //! their full source chain on the following lines.
 
 use crate::typographus::ansi;
-use crate::typographus::clock::now_hms;
+use crate::typographus::clock::write_hms;
 use crate::typographus::error::render_chain;
-use crate::typographus::style::{level_pill_for, style_snapshot};
+use crate::typographus::style::{style_read, write_level_pill};
 use anstyle::{AnsiColor, Reset, Style};
 use std::error::Error;
 use std::fmt::{self, Write as _};
@@ -32,18 +32,23 @@ where
         mut writer: Writer<'_>,
         event: &Event<'_>,
     ) -> fmt::Result {
-        let cfg = style_snapshot();
+        // Visit fields first: they may format user types, which must not run
+        // while we hold the style lock.
+        let mut visitor = FieldVisitor::default();
+        event.record(&mut visitor);
+
+        let cfg = style_read();
         let dim = Style::new().fg_color(Some(cfg.palette.time_fg.into()));
         let body = Style::new().fg_color(Some(cfg.palette.body_fg.into()));
-        let s1 = " ".repeat(cfg.spacing.between_time_pill);
-        let s2 = " ".repeat(cfg.spacing.between_pill_body);
-        let indent = &cfg.spacing.continuation_indent;
-        let nl_indent = format!("\n{indent}");
+        let indent = cfg.spacing.continuation_indent.as_str();
 
-        // Built in one buffer so colors can be stripped in one pass.
+        // One buffer per event so colors can be stripped in one pass.
         let mut line = String::with_capacity(128);
-        let pill = level_pill_for(*event.metadata().level());
-        write!(line, "{dim}{}{Reset}{s1}{pill}{s2}", now_hms())?;
+        write!(line, "{dim}")?;
+        write_hms(&mut line)?;
+        write!(line, "{Reset}{:1$}", "", cfg.spacing.between_time_pill)?;
+        write_level_pill(&mut line, *event.metadata().level(), &cfg)?;
+        write!(line, "{:1$}", "", cfg.spacing.between_pill_body)?;
 
         // Span breadcrumb, root first, with each span's fields.
         if let Some(scope) = ctx.event_scope() {
@@ -67,22 +72,39 @@ where
             }
         }
 
-        let mut visitor = FieldVisitor::default();
-        event.record(&mut visitor);
-
-        let message = visitor.message.replace('\n', &nl_indent);
-        write!(line, "{body}{message}{Reset}")?;
+        write!(line, "{body}")?;
+        push_indented(&mut line, &visitor.message, indent);
+        write!(line, "{Reset}")?;
 
         for (key, value) in &visitor.fields {
-            let value = value.replace('\n', &nl_indent);
-            write!(line, "  {dim}{key}={Reset}{value}")?;
+            write!(line, "  {dim}{key}={Reset}")?;
+            push_indented(&mut line, value, indent);
         }
         let red = Style::new().fg_color(Some(AnsiColor::Red.into()));
         for chain in &visitor.errors {
-            let chain = chain.replace('\n', &nl_indent);
-            write!(line, "{nl_indent}{red}✗{Reset} {chain}")?;
+            write!(line, "\n{indent}{red}✗{Reset} ")?;
+            push_indented(&mut line, chain, indent);
         }
-        writeln!(writer, "{}", ansi::finish(line))
+        drop(cfg);
+
+        if ansi::enabled() {
+            writeln!(writer, "{line}")
+        } else {
+            writeln!(writer, "{}", ansi::strip(&line))
+        }
+    }
+}
+
+/// Append `s`, putting `indent` after every newline.
+fn push_indented(out: &mut String, s: &str, indent: &str) {
+    let mut parts = s.split('\n');
+    if let Some(first) = parts.next() {
+        out.push_str(first);
+    }
+    for part in parts {
+        out.push('\n');
+        out.push_str(indent);
+        out.push_str(part);
     }
 }
 
