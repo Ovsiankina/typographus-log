@@ -1,0 +1,3 @@
+[alias]
+# `cargo showcase`: every feature in one run.
+showcase = "run --example showcase --features eyre"

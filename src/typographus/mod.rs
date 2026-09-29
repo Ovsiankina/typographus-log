@@ -1,2 +1,10 @@
+pub mod ansi;
 pub mod clock;
-pub mod logger;
+pub mod error;
+#[cfg(feature = "eyre")]
+pub mod eyre_hook;
+pub mod panic;
+pub mod style;
+pub mod syntax;
+pub mod table;
+pub mod tracing_fmt;
