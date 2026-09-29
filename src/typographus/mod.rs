@@ -3,8 +3,8 @@ pub mod clock;
 pub mod error;
 #[cfg(feature = "eyre")]
 pub mod eyre_hook;
-pub mod logger;
 pub mod panic;
+pub mod style;
 pub mod syntax;
 pub mod table;
 pub mod tracing_fmt;

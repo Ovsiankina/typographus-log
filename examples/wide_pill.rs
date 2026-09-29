@@ -1,5 +1,5 @@
 use tracing::level_filters::LevelFilter;
-use typographus_log::logger::set_pill_width;
+use typographus_log::style::set_pill_width;
 
 fn main() {
     set_pill_width(12);

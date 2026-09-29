@@ -12,7 +12,7 @@
 //! ```
 
 use crate::typographus::ansi;
-use crate::typographus::logger::level_pill_for;
+use crate::typographus::style::level_pill_for;
 use anstyle::{AnsiColor, Reset, Style};
 use std::error::Error;
 use std::fmt;

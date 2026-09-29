@@ -1,5 +1,5 @@
 use tracing::level_filters::LevelFilter;
-use typographus_log::logger::{Spacing, set_spacing};
+use typographus_log::style::{Spacing, set_spacing};
 
 fn main() {
     set_spacing(Spacing {

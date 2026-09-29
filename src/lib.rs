@@ -18,7 +18,7 @@
 mod typographus;
 #[cfg(feature = "eyre")]
 pub use typographus::eyre_hook;
-pub use typographus::{ansi, clock, error, logger, panic, table, tracing_fmt};
+pub use typographus::{ansi, clock, error, panic, style, table, tracing_fmt};
 
 use tracing::level_filters::LevelFilter;
 
@@ -26,7 +26,7 @@ use tracing::level_filters::LevelFilter;
 /// eyre hook. All output goes to stderr; colors follow [`ansi::enabled`].
 ///
 /// Each part is installed independently: if the app already set its own
-/// subscriber or `log` logger, that part is kept and the rest still
+/// subscriber or `log` style, that part is kept and the rest still
 /// installs. Calling `init` again is a no-op.
 pub fn init() {
     init_with_level(LevelFilter::INFO);

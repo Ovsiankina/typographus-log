@@ -1,6 +1,6 @@
 use anstyle::AnsiColor;
 use tracing::level_filters::LevelFilter;
-use typographus_log::logger::{Palette, set_palette};
+use typographus_log::style::{Palette, set_palette};
 
 fn main() {
     // Customize colors via setters before init

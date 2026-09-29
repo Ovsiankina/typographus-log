@@ -7,7 +7,7 @@
 use crate::typographus::ansi;
 use crate::typographus::clock::now_hms;
 use crate::typographus::error::render_chain;
-use crate::typographus::logger::{level_pill_for, style_snapshot};
+use crate::typographus::style::{level_pill_for, style_snapshot};
 use anstyle::{AnsiColor, Reset, Style};
 use std::error::Error;
 use std::fmt::{self, Write as _};

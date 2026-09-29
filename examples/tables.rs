@@ -2,7 +2,7 @@ use anstyle::{AnsiColor, Reset, Style};
 use tracing::Level;
 use typographus_log::{
     clock::now_hms,
-    logger::level_pill_fg,
+    style::level_pill_fg,
     table::{self, TableStyleBuilder},
 };
 

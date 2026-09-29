@@ -1,6 +1,6 @@
 use anstyle::AnsiColor;
 use tracing::level_filters::LevelFilter;
-use typographus_log::logger::{Palette, Spacing, set_palette, set_spacing};
+use typographus_log::style::{Palette, Spacing, set_palette, set_spacing};
 
 fn main() {
     typographus_log::init_with_level(LevelFilter::INFO);

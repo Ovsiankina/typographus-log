@@ -1,4 +1,4 @@
-use crate::typographus::{clock::now_hms, logger::level_pill_for, syntax, table};
+use crate::typographus::{clock::now_hms, style::level_pill_for, syntax, table};
 use anstyle::{AnsiColor, Effects, Reset, Style};
 use std::io::{self, BufRead, BufReader};
 use std::{fs::File, path::Path};

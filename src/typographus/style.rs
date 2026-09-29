@@ -1,3 +1,5 @@
+//! Style configuration: palette, spacing, pill width, and the level pills.
+
 use anstyle::{AnsiColor, Effects, Reset, Style};
 use once_cell::sync::Lazy;
 use tracing::Level;
@@ -78,11 +80,11 @@ impl Default for StyleConfig {
 static STYLE_CFG: Lazy<std::sync::RwLock<StyleConfig>> =
     Lazy::new(|| std::sync::RwLock::new(StyleConfig::default()));
 
-pub struct LoggerStyleBuilder {
+pub struct StyleBuilder {
     cfg: StyleConfig,
 }
 
-impl LoggerStyleBuilder {
+impl StyleBuilder {
     pub fn new() -> Self {
         Self {
             cfg: StyleConfig::default(),
@@ -107,7 +109,7 @@ impl LoggerStyleBuilder {
     }
 }
 
-impl Default for LoggerStyleBuilder {
+impl Default for StyleBuilder {
     fn default() -> Self {
         Self::new()
     }
@@ -273,7 +275,7 @@ mod tests {
             between_pill_body: 1,
             continuation_indent: "..".into(),
         };
-        LoggerStyleBuilder::new()
+        StyleBuilder::new()
             .palette(pal)
             .spacing(spacing.clone())
             .pill_width(11)
