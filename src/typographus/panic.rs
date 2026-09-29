@@ -1,5 +1,6 @@
 use crate::typographus::{clock::now_hms, style::level_pill_for, syntax, table};
 use anstyle::{AnsiColor, Effects, Reset, Style};
+use std::backtrace::{Backtrace, BacktraceStatus};
 use std::io::{self, BufRead, BufReader};
 use std::{fs::File, path::Path};
 use tracing::Level;
@@ -132,7 +133,13 @@ fn make_label(style: &PanicStyle) -> String {
     format!("{st}{}{Reset}", style.label_text)
 }
 
+const DEFAULT_FOOTER: &str = "panic; set RUST_BACKTRACE=1 for backtrace";
+
 pub fn render_panic_block(file: &str, line: u32, msg: &str, style: PanicStyle) -> String {
+    render_block(file, line, msg, style, DEFAULT_FOOTER)
+}
+
+fn render_block(file: &str, line: u32, msg: &str, style: PanicStyle, footer: &str) -> String {
     let width = style.width;
     let time = now_hms();
     let ts = Style::new()
@@ -187,16 +194,23 @@ pub fn render_panic_block(file: &str, line: u32, msg: &str, style: PanicStyle) -
     out.push_str(&table::box_empty_row(width));
     out.push('\n');
     // Bottom with hint
-    out.push_str(&table::box_bottom_line(
-        "panic; set RUST_BACKTRACE=1 for backtrace",
-        width,
-    ));
+    out.push_str(&table::box_bottom_line(footer, width));
     out
 }
 
 /// Auto-size the panic block using terminal width if available and longest content.
 /// If the terminal is very small (< 40 cols), returns a short notice instead of a block.
-pub fn render_panic_block_auto(file: &str, line: u32, msg: &str, mut style: PanicStyle) -> String {
+pub fn render_panic_block_auto(file: &str, line: u32, msg: &str, style: PanicStyle) -> String {
+    render_block_auto(file, line, msg, style, DEFAULT_FOOTER)
+}
+
+fn render_block_auto(
+    file: &str,
+    line: u32,
+    msg: &str,
+    mut style: PanicStyle,
+    footer: &str,
+) -> String {
     // Build context to measure longest line length
     let ctx_res = format_code_context(std::path::Path::new(file), line, style.context, style);
     let ctx_str = match &ctx_res {
@@ -234,34 +248,50 @@ pub fn render_panic_block_auto(file: &str, line: u32, msg: &str, mut style: Pani
     let desired = (max_content + 6).max(40);
     if let Some(term) = table::terminal_width() {
         if term < 40 {
-            return "(terminal too small to render panic block)".to_string();
+            return format!("panicked at {file}:{line}: {msg}");
         }
         style.width = term; // span full terminal width
     } else {
         if desired < 40 {
-            return "(terminal too small to render panic block)".to_string();
+            return format!("panicked at {file}:{line}: {msg}");
         }
         style.width = desired;
     }
-    render_panic_block(file, line, msg, style)
+    render_block(file, line, msg, style, footer)
 }
 
 /// Install a panic hook that prints a styled panic block to stderr.
+///
+/// The footer names the panicking thread. A backtrace is printed below the
+/// box when `RUST_BACKTRACE` / `RUST_LIB_BACKTRACE` ask for one, like std.
 pub fn install_panic_hook(style: PanicStyle) {
     std::panic::set_hook(Box::new(move |info| {
-        let loc = info.location();
-        let mut msg = String::new();
-        if let Some(s) = info.payload().downcast_ref::<&str>() {
-            msg = s.to_string();
+        let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
+            (*s).to_string()
         } else if let Some(s) = info.payload().downcast_ref::<String>() {
-            msg = s.clone();
-        }
-
-        let rendered = if let Some(loc) = loc {
-            render_panic_block_auto(loc.file(), loc.line(), &msg, style)
+            s.clone()
         } else {
-            render_panic_block_auto("<unknown>", 0, &msg, style)
+            "Box<dyn Any>".to_string()
         };
+        let (file, line) = info
+            .location()
+            .map_or(("<unknown>", 0), |l| (l.file(), l.line()));
+
+        let backtrace = Backtrace::capture();
+        let captured = backtrace.status() == BacktraceStatus::Captured;
+        let thread = std::thread::current();
+        let name = thread.name().unwrap_or("<unnamed>");
+        let footer = if captured {
+            format!("thread '{name}' panicked · backtrace below")
+        } else {
+            format!("thread '{name}' panicked · RUST_BACKTRACE=1 for backtrace")
+        };
+
+        let mut rendered = render_block_auto(file, line, &msg, style, &footer);
+        if captured {
+            let dim = Style::new().fg_color(Some(AnsiColor::BrightBlack.into()));
+            rendered.push_str(&format!("\n{dim}{backtrace}{Reset}"));
+        }
         eprintln!("{}", crate::typographus::ansi::finish(rendered));
     }));
 }
