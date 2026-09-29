@@ -13,7 +13,7 @@ if [[ ! -d examples ]]; then
 fi
 
 echo "Building examples..."
-cargo build --examples >/dev/null
+cargo build --examples --all-features >/dev/null
 
 fail=0
 failed=()
@@ -22,18 +22,22 @@ for f in examples/*.rs; do
   [[ -e "$f" ]] || continue
   name="${f##*/}"
   name="${name%.rs}"
-  echo "\n=== Running example: $name ==="
-  if ! cargo run --quiet --example "$name"; then
-    fail=1
-    failed+=("$name")
+  echo -e "\n=== Running example: $name ==="
+  # showcase ends with an error from main and panicdemo* panic: both on purpose.
+  expect_fail=0
+  [[ "$name" == showcase || "$name" == panicdemo* ]] && expect_fail=1
+  if cargo run --quiet --all-features --example "$name"; then
+    (( expect_fail )) && { fail=1; failed+=("$name (expected non-zero exit)"); }
+  else
+    (( expect_fail )) || { fail=1; failed+=("$name"); }
   fi
 done
 
 if (( fail )); then
-  echo "\nSome examples failed:" >&2
+  echo -e "\nSome examples failed:" >&2
   printf ' - %s\n' "${failed[@]}" >&2
   exit 1
 fi
 
-echo "\nAll examples ran successfully."
+echo -e "\nAll examples ran successfully."
 

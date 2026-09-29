@@ -140,3 +140,7 @@ cargo run --example tables
 ```
 
 All examples live in `examples/`.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

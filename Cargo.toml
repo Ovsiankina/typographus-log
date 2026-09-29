@@ -3,6 +3,12 @@ name = "typographus-log"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/Ovsiankina/typographus-log"
+readme = "README.md"
+keywords = ["tracing", "logging", "error", "eyre", "terminal"]
+exclude = [".github", ".cargo", "AGENTS.md", "scripts", "src/guideline.md"]
+categories = ["development-tools::debugging", "command-line-interface"]
 description = "Pretty, opinionated terminal output for tracing events, errors and panics"
 
 [dependencies]
