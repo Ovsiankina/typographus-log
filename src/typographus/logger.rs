@@ -1,7 +1,6 @@
-use crate::typographus::clock::now_hms;
 use anstyle::{AnsiColor, Effects, Reset, Style};
-use log::{Level, LevelFilter, Log, Metadata, Record};
 use once_cell::sync::Lazy;
+use tracing::Level;
 
 // ───────────────────── style configuration (NEW) ─────────────────────────────
 #[derive(Clone, Copy, Debug)]
@@ -102,7 +101,7 @@ impl LoggerStyleBuilder {
         self
     }
 
-    /// Apply immediately. Safe to call before or after `init_logger`.
+    /// Apply immediately. Safe to call before or after `typographus_log::init`.
     pub fn apply(self) {
         *STYLE_CFG.write().expect("poisoned style lock") = self.cfg;
     }
@@ -116,43 +115,17 @@ impl Default for LoggerStyleBuilder {
 
 // ───────────────────── style helpers (CHANGED) ───────────────────────────────
 
-// Returns a dim "on" sequence using configured time_fg color.
-// Still no reset here; caller must add {Reset}.
-#[allow(dead_code)]
-#[inline]
-fn dim_on() -> String {
-    let pal = &STYLE_CFG.read().expect("style lock").palette;
-    Style::new()
-        .fg_color(Some(pal.time_fg.into()))
-        .render()
-        .to_string()
-}
-
-/// Dim an arbitrary string using configured time_fg, with reset.
-fn dim(s: &str) -> String {
-    let pal = &STYLE_CFG.read().expect("style lock").palette;
-    let st = Style::new().fg_color(Some(pal.time_fg.into()));
-    format!("{st}{s}{Reset}")
-}
-
-/// Color a string using configured body_fg, with reset.
-fn white(s: &str) -> String {
-    let pal = &STYLE_CFG.read().expect("style lock").palette;
-    let st = Style::new().fg_color(Some(pal.body_fg.into()));
-    format!("{st}{s}{Reset}")
-}
-
 // ───────────────────── level pill (CHANGED) ──────────────────────────────────
 pub(crate) fn level_pill_for(level: Level) -> String {
     let cfg = STYLE_CFG.read().expect("style lock").clone();
     let pal = cfg.palette;
 
     let (fg, bg, label) = match level {
-        Level::Error => (pal.error_fg, pal.error_bg, "ERROR"),
-        Level::Warn => (pal.warn_fg, pal.warn_bg, "WARNING"),
-        Level::Info => (pal.info_fg, pal.info_bg, "INFO"),
-        Level::Debug => (pal.debug_fg, pal.debug_bg, "DEBUG"),
-        Level::Trace => (pal.trace_fg, pal.trace_bg, "TRACE"),
+        Level::ERROR => (pal.error_fg, pal.error_bg, "ERROR"),
+        Level::WARN => (pal.warn_fg, pal.warn_bg, "WARNING"),
+        Level::INFO => (pal.info_fg, pal.info_bg, "INFO"),
+        Level::DEBUG => (pal.debug_fg, pal.debug_bg, "DEBUG"),
+        Level::TRACE => (pal.trace_fg, pal.trace_bg, "TRACE"),
     };
 
     // Fixed interior width to keep columns steady.
@@ -169,48 +142,6 @@ pub(crate) fn level_pill_for(level: Level) -> String {
     format!("{st}{padded}{Reset}")
 }
 
-// ───────────────────── logger impl (UPDATED) ─────────────────────────────────
-static LOGGER: Logger = Logger;
-
-pub struct Logger;
-
-impl Logger {
-    pub fn init_logger(level: LevelFilter) {
-        let _ = log::set_logger(&LOGGER);
-        log::set_max_level(level);
-    }
-}
-
-impl Log for Logger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= log::max_level()
-    }
-    fn log(&self, record: &Record) {
-        if !self.enabled(record.metadata()) {
-            return;
-        }
-
-        let cfg = STYLE_CFG.read().expect("style lock").clone();
-
-        // Build segments (each self-resets).
-        let ts = dim(&now_hms());
-        let pill = level_pill_for(record.level());
-
-        // Indent multiline body using configured indent, then color with body_fg.
-        let indent = &cfg.spacing.continuation_indent;
-        let mut body = format!("{}", record.args());
-        body = body.replace('\n', &format!("\n{indent}"));
-        let body = white(&body);
-
-        // Spacing between tokens, plain unstyled spaces.
-        let s1 = " ".repeat(cfg.spacing.between_time_pill);
-        let s2 = " ".repeat(cfg.spacing.between_pill_body);
-
-        println!("{ts}{s1}{pill}{s2}{body}");
-    }
-    fn flush(&self) {}
-}
-
 /// Current style config (cloned; cheap, taken once per event).
 pub(crate) fn style_snapshot() -> StyleConfig {
     STYLE_CFG.read().expect("style lock").clone()
@@ -224,11 +155,11 @@ pub fn level_pill_fg(level: Level) -> String {
     let cfg = STYLE_CFG.read().expect("style lock").clone();
     let pal = cfg.palette;
     let (fg, label) = match level {
-        Level::Error => (pal.error_fg, "ERROR"),
-        Level::Warn => (pal.warn_fg, "WARNING"),
-        Level::Info => (pal.info_fg, "INFO"),
-        Level::Debug => (pal.debug_fg, "DEBUG"),
-        Level::Trace => (pal.trace_fg, "TRACE"),
+        Level::ERROR => (pal.error_fg, "ERROR"),
+        Level::WARN => (pal.warn_fg, "WARNING"),
+        Level::INFO => (pal.info_fg, "INFO"),
+        Level::DEBUG => (pal.debug_fg, "DEBUG"),
+        Level::TRACE => (pal.trace_fg, "TRACE"),
     };
     let w = cfg.pill_width.max(label.len());
     let text = format!(" {:^w$} ", label);
@@ -380,27 +311,10 @@ mod tests {
     }
 
     #[test]
-    fn dim_and_white_and_dim_on_render_expected() {
-        let _g = test_lock();
-        *STYLE_CFG.write().unwrap() = StyleConfig::default();
-        let dim_prefix = Style::new()
-            .fg_color(Some(AnsiColor::BrightBlack.into()))
-            .render()
-            .to_string();
-        let white_prefix = Style::new()
-            .fg_color(Some(AnsiColor::White.into()))
-            .render()
-            .to_string();
-        assert_eq!(dim_on(), dim_prefix);
-        assert_eq!(dim("abc"), format!("{dim_prefix}abc{Reset}"));
-        assert_eq!(white("xyz"), format!("{white_prefix}xyz{Reset}"));
-    }
-
-    #[test]
     fn level_pill_fixed_width_and_style() {
         let _g = test_lock();
         *STYLE_CFG.write().unwrap() = StyleConfig::default();
-        let warn = level_pill_for(Level::Warn);
+        let warn = level_pill_for(Level::WARN);
         let stripped = strip_ansi(&warn);
         let w = STYLE_CFG.read().unwrap().pill_width.max("WARNING".len());
         assert_eq!(stripped, format!(" {:^w$} ", "WARNING"));
@@ -419,7 +333,7 @@ mod tests {
     fn level_pill_fg_fixed_width_and_style() {
         let _g = test_lock();
         *STYLE_CFG.write().unwrap() = StyleConfig::default();
-        let info = level_pill_fg(Level::Info);
+        let info = level_pill_fg(Level::INFO);
         let stripped = strip_ansi(&info);
         let w = STYLE_CFG.read().unwrap().pill_width.max("INFO".len());
         assert_eq!(stripped, format!(" {:^w$} ", "INFO"));
@@ -430,29 +344,5 @@ mod tests {
             .to_string();
         assert!(info.starts_with(&st));
         assert!(info.ends_with(format!("{Reset}").as_str()));
-    }
-
-    #[test]
-    fn logger_enabled_respects_max_level() {
-        let _g = test_lock();
-        log::set_max_level(LevelFilter::Info);
-        let lg = Logger;
-        let info_meta = log::Metadata::builder()
-            .level(Level::Info)
-            .target("t")
-            .build();
-        let debug_meta = log::Metadata::builder()
-            .level(Level::Debug)
-            .target("t")
-            .build();
-        assert!(lg.enabled(&info_meta));
-        assert!(!lg.enabled(&debug_meta));
-    }
-
-    #[test]
-    fn init_logger_sets_max_level() {
-        let _g = test_lock();
-        Logger::init_logger(LevelFilter::Trace);
-        assert_eq!(log::max_level(), LevelFilter::Trace);
     }
 }

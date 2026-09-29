@@ -1,8 +1,8 @@
 use crate::typographus::{clock::now_hms, logger::level_pill_for, syntax, table};
 use anstyle::{AnsiColor, Effects, Reset, Style};
-use log::Level;
 use std::io::{self, BufRead, BufReader};
 use std::{fs::File, path::Path};
+use tracing::Level;
 
 #[derive(Clone, Copy, Debug)]
 pub struct PanicStyle {
@@ -141,7 +141,7 @@ pub fn render_panic_block(file: &str, line: u32, msg: &str, style: PanicStyle) -
         .to_string();
     let time_seg = format!("{ts}{time}{Reset}");
     let label = if style.use_logger_pill {
-        level_pill_for(Level::Error)
+        level_pill_for(Level::ERROR)
     } else {
         make_label(&style)
     };

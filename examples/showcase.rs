@@ -77,7 +77,7 @@ fn main() -> eyre::Result<()> {
         trace!(rows = 42, "query done");
     }
 
-    // 4. Old `log` crate records go through the same formatter.
+    // 4. Records from crates still on `log` go through the same formatter.
     log::info!("hello from the `log` crate");
 
     // 5. thiserror error logged as a tracing field: full chain rendered.

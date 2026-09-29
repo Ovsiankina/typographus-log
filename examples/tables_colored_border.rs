@@ -1,5 +1,5 @@
 use anstyle::{AnsiColor, Reset, Style};
-use log::Level;
+use tracing::Level;
 use typographus_log::{
     clock::now_hms,
     table::{self, TableStyleBuilder},
@@ -12,11 +12,11 @@ fn dim(s: &str) -> String {
 
 fn fg_pill(level: Level) -> String {
     let (fg, label) = match level {
-        Level::Error => (AnsiColor::Red, "ERROR"),
-        Level::Warn => (AnsiColor::Yellow, "WARNING"),
-        Level::Info => (AnsiColor::Green, "INFO"),
-        Level::Debug => (AnsiColor::Blue, "DEBUG"),
-        Level::Trace => (AnsiColor::Magenta, "TRACE"),
+        Level::ERROR => (AnsiColor::Red, "ERROR"),
+        Level::WARN => (AnsiColor::Yellow, "WARNING"),
+        Level::INFO => (AnsiColor::Green, "INFO"),
+        Level::DEBUG => (AnsiColor::Blue, "DEBUG"),
+        Level::TRACE => (AnsiColor::Magenta, "TRACE"),
     };
     let w = 7usize.max(label.len());
     let st = Style::new().fg_color(Some(fg.into())).to_string();
@@ -32,7 +32,7 @@ fn main() {
         .apply();
 
     let width = table::terminal_width().unwrap_or(80);
-    let left = format!("{}  {}", dim(&now_hms()), fg_pill(Level::Info));
+    let left = format!("{}  {}", dim(&now_hms()), fg_pill(Level::INFO));
     let top = table::box_top_line(&left, "colored border", width);
     println!("{}", top);
     println!(

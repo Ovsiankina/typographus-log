@@ -14,9 +14,9 @@
 use crate::typographus::ansi;
 use crate::typographus::logger::level_pill_for;
 use anstyle::{AnsiColor, Reset, Style};
-use log::Level;
 use std::error::Error;
 use std::fmt;
+use tracing::Level;
 
 /// Render an error and its source chain as a styled, multi-line string.
 ///
@@ -24,7 +24,7 @@ use std::fmt;
 pub fn render_error(err: &(dyn Error + 'static)) -> String {
     ansi::finish(format!(
         "{}  {}",
-        level_pill_for(Level::Error),
+        level_pill_for(Level::ERROR),
         render_chain(err)
     ))
 }

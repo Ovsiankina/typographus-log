@@ -1,5 +1,5 @@
 use anstyle::{AnsiColor, Reset, Style};
-use log::Level;
+use tracing::Level;
 use typographus_log::{
     clock::now_hms,
     logger::level_pill_fg,
@@ -30,7 +30,7 @@ fn render_box(level: Level, right_meta: &str, body_lines: &[&str], bottom_right:
 fn main() {
     // INFO
     render_box(
-        Level::Info,
+        Level::INFO,
         "route=/ home",
         &["Welcome to the app", "Rendering home page"],
         "ok",
@@ -38,7 +38,7 @@ fn main() {
 
     // WARN with a bottom-left note
     render_box(
-        Level::Warn,
+        Level::WARN,
         "user=guest",
         &[
             "Configuration near limits",
@@ -49,7 +49,7 @@ fn main() {
 
     // ERROR
     render_box(
-        Level::Error,
+        Level::ERROR,
         "controllers/app.rs:42",
         &[
             "Failed to process request",
@@ -60,7 +60,7 @@ fn main() {
 
     // DEBUG
     render_box(
-        Level::Debug,
+        Level::DEBUG,
         "debug-session=on",
         &["State before: x=1", "State after: x=2"],
         "trace_id=abcd",
@@ -68,7 +68,7 @@ fn main() {
 
     // TRACE
     render_box(
-        Level::Trace,
+        Level::TRACE,
         "path=/api/data",
         &[
             "Entering handler",

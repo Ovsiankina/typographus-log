@@ -1,10 +1,10 @@
 use anstyle::AnsiColor;
-use log::LevelFilter;
-use typographus_log::logger::{Logger, Palette, Spacing, set_palette, set_spacing};
+use tracing::level_filters::LevelFilter;
+use typographus_log::logger::{Palette, Spacing, set_palette, set_spacing};
 
 fn main() {
-    Logger::init_logger(LevelFilter::Info);
-    log::info!("defaults");
+    typographus_log::init_with_level(LevelFilter::INFO);
+    tracing::info!("defaults");
 
     // Update spacing at runtime
     set_spacing(Spacing {
@@ -12,7 +12,7 @@ fn main() {
         between_pill_body: 3,
         continuation_indent: "  ".into(),
     });
-    log::info!("spacing changed at runtime");
+    tracing::info!("spacing changed at runtime");
 
     // Update palette at runtime
     let pal = Palette {
@@ -21,5 +21,5 @@ fn main() {
         ..Palette::default()
     };
     set_palette(pal);
-    log::info!("palette changed at runtime");
+    tracing::info!("palette changed at runtime");
 }

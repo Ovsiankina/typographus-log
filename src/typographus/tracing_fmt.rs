@@ -12,7 +12,7 @@ use anstyle::{AnsiColor, Reset, Style};
 use std::error::Error;
 use std::fmt::{self, Write as _};
 use tracing::field::{Field, Visit};
-use tracing::{Event, Level, Subscriber};
+use tracing::{Event, Subscriber};
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, FormattedFields};
 use tracing_subscriber::registry::LookupSpan;
@@ -20,16 +20,6 @@ use tracing_subscriber::registry::LookupSpan;
 /// Event formatter plugged into `tracing_subscriber::fmt`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct TypographusFormat;
-
-fn to_log_level(level: &Level) -> log::Level {
-    match *level {
-        Level::ERROR => log::Level::Error,
-        Level::WARN => log::Level::Warn,
-        Level::INFO => log::Level::Info,
-        Level::DEBUG => log::Level::Debug,
-        Level::TRACE => log::Level::Trace,
-    }
-}
 
 impl<S, N> FormatEvent<S, N> for TypographusFormat
 where
@@ -52,7 +42,7 @@ where
 
         // Built in one buffer so colors can be stripped in one pass.
         let mut line = String::with_capacity(128);
-        let pill = level_pill_for(to_log_level(event.metadata().level()));
+        let pill = level_pill_for(*event.metadata().level());
         write!(line, "{dim}{}{Reset}{s1}{pill}{s2}", now_hms())?;
 
         // Span breadcrumb, root first, with each span's fields.

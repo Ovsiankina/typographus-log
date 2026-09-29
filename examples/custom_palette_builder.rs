@@ -1,6 +1,6 @@
 use anstyle::AnsiColor;
-use log::LevelFilter;
-use typographus_log::logger::{Logger, LoggerStyleBuilder, Palette};
+use tracing::level_filters::LevelFilter;
+use typographus_log::logger::{LoggerStyleBuilder, Palette};
 
 fn main() {
     let pal = Palette {
@@ -21,6 +21,6 @@ fn main() {
 
     LoggerStyleBuilder::new().palette(pal).pill_width(9).apply();
 
-    Logger::init_logger(LevelFilter::Info);
-    log::info!("builder-configured palette; pill width = 9");
+    typographus_log::init_with_level(LevelFilter::INFO);
+    tracing::info!("builder-configured palette; pill width = 9");
 }

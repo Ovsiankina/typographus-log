@@ -1,11 +1,10 @@
-use log::LevelFilter;
-use typographus_log::logger::Logger;
+use tracing::level_filters::LevelFilter;
 
 fn main() {
-    Logger::init_logger(LevelFilter::Trace);
-    log::error!("error message");
-    log::warn!("warning message");
-    log::info!("info message");
-    log::debug!("debug message");
-    log::trace!("trace message");
+    typographus_log::init_with_level(LevelFilter::TRACE);
+    tracing::error!("error message");
+    tracing::warn!("warning message");
+    tracing::info!("info message");
+    tracing::debug!("debug message");
+    tracing::trace!("trace message");
 }

@@ -1,5 +1,5 @@
-use log::LevelFilter;
-use typographus_log::logger::{Logger, Spacing, set_spacing};
+use tracing::level_filters::LevelFilter;
+use typographus_log::logger::{Spacing, set_spacing};
 
 fn main() {
     set_spacing(Spacing {
@@ -8,7 +8,7 @@ fn main() {
         continuation_indent: "--> ".into(),
     });
 
-    Logger::init_logger(LevelFilter::Trace);
-    log::info!("single-line body");
-    log::debug!("multi-line\nbody\nwith custom indent");
+    typographus_log::init_with_level(LevelFilter::TRACE);
+    tracing::info!("single-line body");
+    tracing::debug!("multi-line\nbody\nwith custom indent");
 }

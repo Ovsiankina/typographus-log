@@ -1,6 +1,6 @@
 use anstyle::AnsiColor;
-use log::LevelFilter;
-use typographus_log::logger::{Logger, Palette, set_palette};
+use tracing::level_filters::LevelFilter;
+use typographus_log::logger::{Palette, set_palette};
 
 fn main() {
     // Customize colors via setters before init
@@ -21,8 +21,8 @@ fn main() {
     };
     set_palette(pal);
 
-    Logger::init_logger(LevelFilter::Info);
-    log::info!("custom palette (cyan info)");
-    log::warn!("warns are black-on-yellow");
-    log::error!("errors are bright white on red");
+    typographus_log::init_with_level(LevelFilter::INFO);
+    tracing::info!("custom palette (cyan info)");
+    tracing::warn!("warns are black-on-yellow");
+    tracing::error!("errors are bright white on red");
 }
