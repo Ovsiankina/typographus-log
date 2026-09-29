@@ -26,7 +26,7 @@ priorities, in this order when they conflict: **dead-simple DX**, then
 - `cargo fmt --all`
 - `cargo clippy --all-targets -- -D warnings` **and** `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --all-features` (unit tests + README/lib doctests)
-- `cargo run --example showcase --features eyre` to eyeball output.
+- `cargo showcase` (alias in `.cargo/config.toml`) to eyeball output.
 
 ## Output Guarantees (don't break these)
 

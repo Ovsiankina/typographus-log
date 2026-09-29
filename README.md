@@ -132,7 +132,7 @@ single write to stderr. Errors are only rendered when they're printed.
 ## Examples
 
 ```sh
-cargo run --example showcase --features eyre   # everything at once
+cargo showcase                                # everything at once (alias for --example showcase --features eyre)
 cargo run --example basic
 cargo run --example custom_palette_builder
 cargo run --example panicdemo
