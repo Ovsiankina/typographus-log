@@ -1,6 +1,10 @@
 use anstyle::{AnsiColor, Reset, Style};
 use log::Level;
-use typographus_log::{clock::now_hms, logger::level_pill_fg, table::{self, TableStyleBuilder}};
+use typographus_log::{
+    clock::now_hms,
+    logger::level_pill_fg,
+    table::{self, TableStyleBuilder},
+};
 
 fn dim(s: &str) -> String {
     let st = Style::new().fg_color(Some(AnsiColor::BrightBlack.into()));

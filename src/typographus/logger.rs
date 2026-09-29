@@ -211,6 +211,11 @@ impl Log for Logger {
     fn flush(&self) {}
 }
 
+/// Current style config (cloned; cheap, taken once per event).
+pub(crate) fn style_snapshot() -> StyleConfig {
+    STYLE_CFG.read().expect("style lock").clone()
+}
+
 // ───────────────────── public style API (NEW) ────────────────────────────────
 /// Foreground-only level pill using configured palette and pill width.
 /// Width equals `StyleConfig.pill_width` interior, padded with a single space

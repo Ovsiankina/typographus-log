@@ -262,7 +262,7 @@ pub fn install_panic_hook(style: PanicStyle) {
         } else {
             render_panic_block_auto("<unknown>", 0, &msg, style)
         };
-        eprintln!("{}", rendered);
+        eprintln!("{}", crate::typographus::ansi::finish(rendered));
     }));
 }
 

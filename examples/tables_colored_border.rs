@@ -1,6 +1,9 @@
 use anstyle::{AnsiColor, Reset, Style};
 use log::Level;
-use typographus_log::{clock::now_hms, table::{self, TableStyleBuilder}};
+use typographus_log::{
+    clock::now_hms,
+    table::{self, TableStyleBuilder},
+};
 
 fn dim(s: &str) -> String {
     let st = Style::new().fg_color(Some(AnsiColor::BrightBlack.into()));
@@ -32,7 +35,10 @@ fn main() {
     let left = format!("{}  {}", dim(&now_hms()), fg_pill(Level::Info));
     let top = table::box_top_line(&left, "colored border", width);
     println!("{}", top);
-    println!("{}", table::box_body_row("Showcasing a custom border color", width));
+    println!(
+        "{}",
+        table::box_body_row("Showcasing a custom border color", width)
+    );
     println!("{}", table::box_empty_row(width));
     println!("{}", table::box_bottom_line("done", width));
 }
