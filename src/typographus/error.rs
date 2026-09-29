@@ -46,6 +46,24 @@ pub fn render_chain(err: &(dyn Error + 'static)) -> String {
     ansi::finish(out)
 }
 
+thread_local! {
+    static IN_FIELD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Run `f` with "field mode" on: `Report` and the eyre handler then print
+/// only the chain (no pill), because the event line already has one.
+pub(crate) fn in_field_mode<R>(f: impl FnOnce() -> R) -> R {
+    let prev = IN_FIELD.replace(true);
+    let out = f();
+    IN_FIELD.set(prev);
+    out
+}
+
+/// Whether we're currently formatting a tracing field.
+pub(crate) fn is_field_mode() -> bool {
+    IN_FIELD.get()
+}
+
 /// Error wrapper for binaries that don't use eyre.
 ///
 /// Any `std::error::Error` converts into it through `?`. Returning it from
@@ -82,7 +100,11 @@ impl<E: Error + Send + Sync + 'static> From<E> for Report {
 
 impl fmt::Debug for Report {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&render_error(&*self.inner))
+        if is_field_mode() {
+            f.write_str(&render_chain(&*self.inner))
+        } else {
+            f.write_str(&render_error(&*self.inner))
+        }
     }
 }
 

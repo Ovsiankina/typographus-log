@@ -191,16 +191,21 @@ pub fn set_pill_width(width: usize) {
     cfg.pill_width = width.max(1);
 }
 
+/// Serializes tests that touch the global style (any module).
+#[cfg(test)]
+pub(crate) fn test_style_lock() -> std::sync::MutexGuard<'static, ()> {
+    static M: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    M.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 // ------------------------------- tests ---------------------------------------
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{Mutex, MutexGuard};
-
-    static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+    use std::sync::MutexGuard;
 
     fn test_lock() -> MutexGuard<'static, ()> {
-        TEST_MUTEX.lock().expect("mutex poisoned")
+        super::test_style_lock()
     }
 
     fn strip_ansi(s: &str) -> String {

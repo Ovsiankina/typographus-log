@@ -5,7 +5,7 @@
 //! stays plain eyre.
 
 use crate::typographus::ansi;
-use crate::typographus::error::render_error;
+use crate::typographus::error::{is_field_mode, render_chain, render_error};
 use anstyle::{AnsiColor, Reset, Style};
 use std::error::Error;
 use std::fmt;
@@ -21,6 +21,9 @@ impl eyre::EyreHandler for TypographusHandler {
     fn debug(&self, error: &(dyn Error + 'static), f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
             return fmt::Debug::fmt(error, f);
+        }
+        if is_field_mode() {
+            return f.write_str(&render_chain(error));
         }
         f.write_str(&render_error(error))?;
         if let Some(loc) = self.location {

@@ -86,6 +86,9 @@ fn main() -> eyre::Result<()> {
     }
     let missing = ConfigError::MissingKey("database.url");
     warn!(error = &missing as &dyn Error, "falling back to defaults");
+    // `?report` works too: eyre (or typographus) Report as a Debug field.
+    let wrapped = start().wrap_err("retrying in 5s").unwrap_err();
+    warn!(error = ?wrapped, attempt = 2, "transient failure");
 
     // 6. typographus::error::Report for bins without eyre.
     let report: typographus_log::error::Report = start().unwrap_err().into();
