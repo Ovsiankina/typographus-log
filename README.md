@@ -1,129 +1,142 @@
 # typographus-log
 
-Pretty, configurable console logging for Rust, inspired by Laravel/Symfony.
+Pretty, opinionated terminal output for Rust apps: `tracing` events, errors
+(thiserror, eyre) and panics, all in one consistent look. One call to set up.
+
+```text
+11:42:30    INFO     server listening  port=8080  tls=true
+11:42:30   WARNING   app › handle_request{id=2}  slow upstream  latency_ms=812
+11:42:30    ERROR    app  request aborted
+  ✗ startup failed
+    └─ caused by: could not read config file `/etc/app.toml`
+      └─ caused by: No such file or directory (os error 2)
+```
+
+## Install
+
+```toml
+[dependencies]
+typographus-log = { git = "https://github.com/Ovsiankina/typographus-log" }
+tracing = "0.1"
+
+# optional: style eyre::Report too
+# typographus-log = { git = "...", features = ["eyre"] }
+```
 
 ## Quick start
 
-```rust
-use log::LevelFilter;
-use typographus_log::logger::Logger;
+```rust,no_run
+fn main() -> typographus_log::error::Result<()> {
+    typographus_log::init();
 
-fn main() {
-    Logger::init_logger(LevelFilter::Info);
-    log::info!("Hello, styled world!");
+    tracing::info!(port = 8080, "server listening");
+    std::fs::read_to_string("config.toml")?; // any std error works with `?`
+    Ok(())
 }
 ```
 
-## Customization
+`init()` installs, once:
 
-You can adjust colors, spacing, and the fixed width of the level “pill”.
+- a `tracing` subscriber with the typographus format (INFO and up;
+  `init_with_level(LevelFilter::TRACE)` for more),
+- a bridge so crates still using `log` show up the same way,
+- a panic hook (boxed message + source context),
+- the eyre hook, if the `eyre` feature is on.
 
-```rust
-use anstyle::AnsiColor;
-use log::LevelFilter;
-use typographus_log::logger::{Logger, LoggerStyleBuilder, Palette, Spacing};
+If your app already set its own subscriber, `log` logger or hook, that part
+is left alone and the rest is still installed.
 
-fn main() {
-    let pal = Palette { info_bg: AnsiColor::BrightCyan, info_fg: AnsiColor::Black, ..Palette::default() };
-    let spacing = Spacing { between_time_pill: 3, between_pill_body: 1, continuation_indent: "  ".into() };
+## Errors
 
-    LoggerStyleBuilder::new()
-        .palette(pal)
-        .spacing(spacing)
-        .pill_width(9)
-        .apply();
+typographus doesn't care how an error was made. Anything implementing
+`std::error::Error` (thiserror enums, `io::Error`, ...) is shown with its
+message and every `.source()` below it.
 
-    Logger::init_logger(LevelFilter::Info);
-    log::info!("custom palette and spacing");
-}
+Pick the setup that matches your crate:
+
+| You're writing | Do this | Result |
+|---|---|---|
+| a **library** | Define errors with thiserror; log with `tracing`. Don't depend on typographus. | The app using your lib renders them. |
+| a **binary**, no eyre | `fn main() -> typographus_log::error::Result<()>` | `?` converts any error; `main` prints it pretty. |
+| a **binary** with eyre | enable `features = ["eyre"]`, keep `fn main() -> eyre::Result<()>` | `eyre::Report` prints in the same style, `.wrap_err()` layers included. |
+
+std always prints `Error: ` before the error returned from `main`; that
+prefix can't be removed.
+
+### Errors inside log events
+
+```rust,no_run
+use std::error::Error;
+
+# fn demo(e: std::io::Error, report: typographus_log::error::Report) {
+tracing::error!(error = &e as &dyn Error, "request aborted"); // message + full chain
+tracing::warn!(error = ?report, "retrying");                  // Report / eyre::Report: full chain
+tracing::warn!(err = %e, "falling back");                     // message only
+# }
 ```
 
-More examples are available in `examples/`:
+Fields named `error` or `err`, and any multiline value, are drawn as a `✗`
+block under the line instead of inline `key=value`.
 
-- `examples/basic.rs`
-- `examples/custom_palette_builder.rs`
-- `examples/custom_palette_setters.rs`
-- `examples/custom_spacing.rs`
-- `examples/no_bold_pills.rs`
-- `examples/runtime_update.rs`
-- `examples/wide_pill.rs`
-- `examples/tables.rs`
-- `examples/panicdemo.rs`
-- `examples/panicdemo_bglabel.rs`
+## Output and colors
 
-## Tables
+- Everything goes to **stderr**. stdout stays free for your program's data
+  (`app | jq` is safe).
+- Colors are on when stderr is a terminal and `NO_COLOR` is unset.
+  Override with `typographus_log::ansi::set_enabled(bool)`, e.g. from a
+  `--color` flag.
 
-Tables/boxes are rendered with Unicode borders and a configurable accent color and padding.
+## Customizing the look
 
-Key API:
-- `table::TableChars` to customize border characters
-- `table::TableStyle` and `TableStyleBuilder` to configure accent color and spacing
-- `box_top_line`, `box_body_row`, `box_empty_row`, `box_bottom_line`
+```rust,no_run
+use typographus_log::style::{AnsiColor, Palette, Spacing, StyleBuilder};
 
-Example with dim borders and foreground pills (panic-style):
-
-```rust
-use anstyle::AnsiColor;
-use log::Level;
-use typographus_log::{clock::now_hms, logger::level_pill_fg, table::{self, TableStyleBuilder}};
-
-fn main() {
-    // Dim borders
-    TableStyleBuilder::new().accent_fg(AnsiColor::BrightBlack).apply();
-    let w = table::terminal_width().unwrap_or(80);
-    let left = format!("{}  {}", now_hms(), level_pill_fg(Level::Info));
-    let body = ["Welcome to the app", "Rendering home page"];
-    let block = table::compose_box(&left, "route=/ home", &body, "ok", w);
-    println!("{}", block);
-}
+StyleBuilder::new()
+    .palette(Palette { info_bg: AnsiColor::BrightCyan, ..Palette::default() })
+    .spacing(Spacing { between_pill_body: 1, ..Spacing::default() })
+    .pill_width(9)
+    .apply();
+typographus_log::init();
 ```
 
-Colored border showcase (separate example): see `examples/tables_colored_border.rs`.
+Safe to call before or after `init()`, and at runtime. There are also
+one-off setters: `style::set_palette`, `set_spacing`, `set_pill_width`.
 
-Width policy: boxes span the terminal width (from `COLUMNS` env var) when available; otherwise, they size to the content. If the terminal is too small (< 40 columns), a short notice is printed instead of a full box.
+## Panics
 
-## Panic Context
+`init()` installs the hook with defaults. To change the look, install it
+yourself after `init()`:
 
-Capture runtime panics with a styled block including a code frame. The panic hook resolves file and line at runtime and highlights a configurable number of context lines.
+```rust,no_run
+use typographus_log::panic::{install_panic_hook, PanicStyle};
 
-Key API:
-- `panic::install_panic_hook(style)`
-- `panic::PanicStyle` fields: `width`, `context`, `focus_fg`, `focus_bold`, `context_fg`, `highlight`, `language`, `label_text`, `label_fg`, `label_bold`, `label_bg`, `pointer`
-- `panic::render_panic_block_auto(...)` for manual rendering with auto width
-- Set `use_logger_pill: true` to reuse the logger’s pill for the label (background style)
- - Use `logger::level_pill_fg(level)` for foreground pills in tables/boxes
-
-Defaults:
-- Label (near the timestamp) is foreground-only by default (no background). Users can opt-in to a background.
-- Pointer to the focus line defaults to `->` and is customizable.
-
-Examples:
-
-Foreground label (default):
-```rust
-use typographus_log::panic as panicmod;
-
-fn main() {
-    panicmod::install_panic_hook(panicmod::PanicStyle { context: 4, ..Default::default() });
-    panic!("demonstration panic with runtime source context");
-}
+typographus_log::init();
+install_panic_hook(PanicStyle { context: 4, pointer: "=>", ..Default::default() });
 ```
 
-Background label and custom pointer:
-```rust
-use anstyle::AnsiColor;
-use typographus_log::panic as panicmod;
+The box shows the message, the panicking thread, and the source lines
+around the panic with light syntax highlighting (`highlight: false` to turn
+it off). With `RUST_BACKTRACE=1` a backtrace is printed under it.
 
-fn main() {
-    let style = panicmod::PanicStyle { label_bg: Some(AnsiColor::Red), label_fg: AnsiColor::White, pointer: "=>", ..Default::default() };
-    panicmod::install_panic_hook(style);
-    panic!("panic with background label and custom pointer");
-}
+## Boxes
+
+`table::compose_box` and the `box_*` helpers draw the same bordered boxes
+the panic hook uses, for your own output. See `examples/tables.rs`.
+
+## Performance
+
+Filtered-out events cost what `tracing` costs: nothing is formatted. An
+enabled event takes one read lock and builds one line buffer before a
+single write to stderr. Errors are only rendered when they're printed.
+
+## Examples
+
+```sh
+cargo run --example showcase --features eyre   # everything at once
+cargo run --example basic
+cargo run --example custom_palette_builder
+cargo run --example panicdemo
+cargo run --example tables
 ```
 
-Syntax highlighting: a tiny built-in highlighter colors comments, strings, numbers, and Rust-like keywords. Disable via `highlight: false` or choose `language: syntax::Language::Plain`.
-
-Auto width and truncation:
-- With a detected terminal width (`COLUMNS` env variable), panic boxes span the full terminal width; long content and metadata are truncated with an ellipsis.
-- Without a detected width, the box grows to the longest context line (with padding).
-- If the terminal is very narrow (< 40 columns), a short warning is printed instead of a malformed box.
+All examples live in `examples/`.

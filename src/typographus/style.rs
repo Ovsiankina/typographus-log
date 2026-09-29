@@ -1,6 +1,7 @@
 //! Style configuration: palette, spacing, pill width, and the level pills.
 
-use anstyle::{AnsiColor, Effects, Reset, Style};
+pub use anstyle::AnsiColor;
+use anstyle::{Effects, Reset, Style};
 use once_cell::sync::Lazy;
 use tracing::Level;
 

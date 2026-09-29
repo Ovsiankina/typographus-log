@@ -2,6 +2,8 @@
 name = "typographus-log"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88"
+description = "Pretty, opinionated terminal output for tracing events, errors and panics"
 
 [dependencies]
 once_cell = "1.21.3"

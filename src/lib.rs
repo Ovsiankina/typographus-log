@@ -15,10 +15,15 @@
 //!   through [`error::Report`] or as a tracing field.
 //! - With the `eyre` feature, `eyre::Report` uses the same look.
 
+/// README examples, compiled as doctests so they can't go stale.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeDoctests;
+
 mod typographus;
 #[cfg(feature = "eyre")]
 pub use typographus::eyre_hook;
-pub use typographus::{ansi, clock, error, panic, style, table, tracing_fmt};
+pub use typographus::{ansi, clock, error, panic, style, syntax, table, tracing_fmt};
 
 use tracing::level_filters::LevelFilter;
 
