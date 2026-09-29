@@ -36,6 +36,8 @@ pub fn init() {
 pub fn init_with_level(level: LevelFilter) {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
+        // Before anything spawns threads: see `clock` docs.
+        clock::init();
         let subscriber = tracing_subscriber::fmt()
             .event_format(tracing_fmt::TypographusFormat)
             .with_writer(std::io::stderr)
